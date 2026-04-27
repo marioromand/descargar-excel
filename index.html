@@ -4,63 +4,67 @@
 <meta charset="utf-8">
 <title>Generando reporte...</title>
 </head>
+
 <body style="font-family:Arial;text-align:center;padding-top:100px;">
 
 <h2>Generando reporte, por favor espera...</h2>
 
 <script>
+
 (async function(){
 
 const gp="https://gispruebas.epmmop.gob.ec/server/rest/services/REPORTE_MANTENIMIENTOS_RDA/exportaraecxel/GPServer/exportaraecxel";
 
 try{
 
-// 👇 IMPORTANTE: ENVIAR COMO STRING PLANO
 let params = new URLSearchParams();
 params.append("f","json");
-params.append("input_layer","https://sig.epmmop.gob.ec/epmmopsig/rest/services/REPORTE_MANTENIMIENTO_RDA/REPORTE_MANTENIMIENTO_RDA/FeatureServer/1");
 
-let r=await fetch(gp+"/submitJob",{
-method:"POST",
-body:params
+params.append("input_layer", JSON.stringify({
+    url: "https://sig.epmmop.gob.ec/epmmopsig/rest/services/REPORTE_MANTENIMIENTO_RDA/REPORTE_MANTENIMIENTO_RDA/FeatureServer/1",
+    where: "1=1",
+    outFields: "*",
+    returnGeometry: false
+}));
+
+let r = await fetch(gp + "/submitJob", {
+method: "POST",
+body: params
 });
 
-let d=await r.json();
+let d = await r.json();
 
 if(!d.jobId){
 document.body.innerHTML="Error al iniciar proceso";
 return;
 }
 
-let id=d.jobId;
-let s="esriJobSubmitted";
+let id = d.jobId;
+let s = "esriJobSubmitted";
 
-// 👇 LOOP DE ESTADO
-while(s!=="esriJobSucceeded"){
+while(s !== "esriJobSucceeded"){
 
-await new Promise(x=>setTimeout(x,2000));
+await new Promise(x => setTimeout(x, 2000));
 
-let st=await fetch(gp+"/jobs/"+id+"?f=json");
-let sd=await st.json();
+let st = await fetch(gp + "/jobs/" + id + "?f=json");
+let sd = await st.json();
 
-s=sd.jobStatus;
+s = sd.jobStatus;
 
-if(s==="esriJobFailed"){
+if(s === "esriJobFailed"){
 document.body.innerHTML = "Error en el proceso:<br><pre>"+JSON.stringify(sd,null,2)+"</pre>";
 return;
 }
 }
 
-// 👇 OBTENER RESULTADO
-let rr=await fetch(gp+"/jobs/"+id+"/results/output_excel?f=json");
-let rd=await rr.json();
+let rr = await fetch(gp + "/jobs/" + id + "/results/output_excel?f=json");
+let rd = await rr.json();
 
 if(!rd.value || !rd.value.url){
 document.body.innerHTML="No se pudo obtener el archivo";
 return;
 }
 
-// 👇 DESCARGA
 window.location.href = rd.value.url;
 
 }catch(e){
@@ -69,6 +73,7 @@ console.error(e);
 }
 
 })();
+
 </script>
 
 </body>
