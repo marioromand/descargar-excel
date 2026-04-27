@@ -10,42 +10,64 @@
 
 <script>
 (async function(){
+
 const gp="https://gispruebas.epmmop.gob.ec/server/rest/services/REPORTE_MANTENIMIENTOS_RDA/exportaraecxel/GPServer/exportaraecxel";
 
 try{
+
+// 👇 IMPORTANTE: ENVIAR COMO STRING PLANO
+let params = new URLSearchParams();
+params.append("f","json");
+params.append("input_layer","https://sig.epmmop.gob.ec/epmmopsig/rest/services/REPORTE_MANTENIMIENTO_RDA/REPORTE_MANTENIMIENTO_RDA/FeatureServer/1");
+
 let r=await fetch(gp+"/submitJob",{
 method:"POST",
-body:new URLSearchParams({
-f:"json",
-input_layer:"https://sig.epmmop.gob.ec/epmmopsig/rest/services/REPORTE_MANTENIMIENTO_RDA/REPORTE_MANTENIMIENTO_RDA/FeatureServer/1"
-})
+body:params
 });
 
 let d=await r.json();
-let id=d.jobId;
 
+if(!d.jobId){
+document.body.innerHTML="Error al iniciar proceso";
+return;
+}
+
+let id=d.jobId;
 let s="esriJobSubmitted";
 
+// 👇 LOOP DE ESTADO
 while(s!=="esriJobSucceeded"){
+
 await new Promise(x=>setTimeout(x,2000));
+
 let st=await fetch(gp+"/jobs/"+id+"?f=json");
 let sd=await st.json();
+
 s=sd.jobStatus;
 
 if(s==="esriJobFailed"){
-document.body.innerHTML="Error en el proceso";
+document.body.innerHTML = "Error en el proceso:<br><pre>"+JSON.stringify(sd,null,2)+"</pre>";
 return;
 }
 }
 
+// 👇 OBTENER RESULTADO
 let rr=await fetch(gp+"/jobs/"+id+"/results/output_excel?f=json");
 let rd=await rr.json();
 
-window.location.href=rd.value.url;
+if(!rd.value || !rd.value.url){
+document.body.innerHTML="No se pudo obtener el archivo";
+return;
+}
+
+// 👇 DESCARGA
+window.location.href = rd.value.url;
 
 }catch(e){
 document.body.innerHTML="Error ejecutando el servicio";
+console.error(e);
 }
+
 })();
 </script>
 
