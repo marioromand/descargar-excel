@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Generando reporte...</title>
+</head>
+<body style="font-family:Arial;text-align:center;padding-top:100px;">
+
+<h2>Generando reporte, por favor espera...</h2>
+
+<script>
+(async function(){
+const gp="https://gispruebas.epmmop.gob.ec/server/rest/services/REPORTE_MANTENIMIENTOS_RDA/exportaraecxel/GPServer/exportaraecxel";
+
+try{
+let r=await fetch(gp+"/submitJob",{
+method:"POST",
+body:new URLSearchParams({
+f:"json",
+input_layer:"https://sig.epmmop.gob.ec/epmmopsig/rest/services/REPORTE_MANTENIMIENTO_RDA/REPORTE_MANTENIMIENTO_RDA/FeatureServer/1"
+})
+});
+
+let d=await r.json();
+let id=d.jobId;
+
+let s="esriJobSubmitted";
+
+while(s!=="esriJobSucceeded"){
+await new Promise(x=>setTimeout(x,2000));
+let st=await fetch(gp+"/jobs/"+id+"?f=json");
+let sd=await st.json();
+s=sd.jobStatus;
+
+if(s==="esriJobFailed"){
+document.body.innerHTML="Error en el proceso";
+return;
+}
+}
+
+let rr=await fetch(gp+"/jobs/"+id+"/results/output_excel?f=json");
+let rd=await rr.json();
+
+window.location.href=rd.value.url;
+
+}catch(e){
+document.body.innerHTML="Error ejecutando el servicio";
+}
+})();
+</script>
+
+</body>
+</html>
